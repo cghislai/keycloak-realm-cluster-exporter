@@ -20,7 +20,7 @@ pipeline {
                     if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
                         env.MVN_ARGS = "-DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
                     }
-                    env.MVN_PHASE = "deploy"
+                    env.MVN_PHASE = "install"
                 }
                 withMaven(maven: "${params.MAVEN_INSTALLATION}", mavenSettingsConfig: "${params.MAVEN_SETTINGS}") {
                     sh "mvn ${env.MVN_ARGS}  clean ${env.MVN_PHASE}"
