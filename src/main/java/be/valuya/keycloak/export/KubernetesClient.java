@@ -10,6 +10,7 @@ import io.kubernetes.client.util.ClientBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -37,7 +38,9 @@ public class KubernetesClient {
         //   3. service-account namespace
         //   4. master endpoints(ip, port) from pre-set environment variables
         ApiClient client = ClientBuilder.cluster().build();
-//        client.setDebugging(true);
+        if (exportConfig.isDebug()) {
+            client.setDebugging(true);
+        }
 
         // if you prefer not to refresh service account token, please use:
         // ApiClient client = ClientBuilder.oldCluster().build();
@@ -80,7 +83,11 @@ public class KubernetesClient {
             throw new RuntimeException("Unable to create/replace secret " + secretName, e);
         }
         LOG.log(Level.FINE, "Created/replaced secret " + secretName + " with " + dataBytes.length + " bytes in key" + secretKey);
-        LOG.log(Level.FINER, "Updated secret: " + updatedSecret);
+        if (exportConfig.isDebug()) {
+            String realmJson = new String(dataBytes, StandardCharsets.UTF_8);
+            LOG.log(Level.FINER, "Updated secret: " + updatedSecret);
+            LOG.log(Level.FINER, realmJson);
+        }
     }
 
     private String createNameSpaceSecretName(String realm) {

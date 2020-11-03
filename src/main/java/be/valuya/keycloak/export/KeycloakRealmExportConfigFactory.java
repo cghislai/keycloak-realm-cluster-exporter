@@ -23,6 +23,7 @@ public class KeycloakRealmExportConfigFactory {
     public static final String DEFAULT_NAMESPACE = "default";
     public static final String DEFAULT_NAME_PATTERN = "realm-{0}-json-export-{1}-secret";
 
+    public static final String PROP_DEBUG = "debug";
     public static final String PROP_REALM = "realm";
     public static final String PROP_REALMS = "realms";
     public static final String PROP_URI = "uri";
@@ -32,7 +33,7 @@ public class KeycloakRealmExportConfigFactory {
     public static final String PROP_SECRET_NAME_PATTERN = "secretpattern";
 
     private final static Set<String> allProperties = Set.of(
-            PROP_REALM, PROP_REALMS, PROP_URI, PROP_ADMIN_USERNAME, PROP_ADMIN_PASSWORD,
+            PROP_DEBUG, PROP_REALM, PROP_REALMS, PROP_URI, PROP_ADMIN_USERNAME, PROP_ADMIN_PASSWORD,
             PROP_SECRET_NAMESPACE, PROP_SECRET_NAME_PATTERN
     );
 
@@ -87,6 +88,11 @@ public class KeycloakRealmExportConfigFactory {
         String secretNamePattern = Optional.ofNullable(properties.get(PROP_SECRET_NAME_PATTERN))
                 .orElse(DEFAULT_NAME_PATTERN);
         exportConfig.setSecretNamePattern(secretNamePattern);
+
+        boolean debug = Optional.ofNullable(properties.get(PROP_DEBUG))
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        exportConfig.setDebug(debug);
 
         return exportConfig;
     }

@@ -13,6 +13,8 @@ public class KeycloakRealmExportConfig {
     private String secretNamespace;
     private String secretNamePattern;
 
+    private boolean debug;
+
     public Set<String> getRealmNames() {
         return realmNames;
     }
@@ -59,5 +61,26 @@ public class KeycloakRealmExportConfig {
 
     public void setSecretNamePattern(String secretNamePattern) {
         this.secretNamePattern = secretNamePattern;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    @Override
+    public String toString() {
+        return "KeycloakRealmExportConfig{" +
+                "realmNames=" + realmNames +
+                ", keycloakApiUri=" + keycloakApiUri +
+                ", adminUser='" + adminUser + '\'' +
+                ", adminPassword='" + adminPassword + '\'' +
+                ", secretNamespace='" + secretNamespace + '\'' +
+                ", secretNamePattern='" + secretNamePattern + '\'' +
+                ", debug=" + debug +
+                '}';
     }
 }

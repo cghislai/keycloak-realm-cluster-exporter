@@ -13,8 +13,11 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class KeycloakExportClient {
+    private final static Logger LOG = Logger.getLogger(KeycloakExportClient.class.getName());
 
     private KeycloakRealmExportConfig exportConfig;
 
@@ -40,16 +43,25 @@ public class KeycloakExportClient {
                     .headers("content-type", "application/x-www-form-urlencoded")
                     .header("accept", "application/json")
                     .build();
+            if (exportConfig.isDebug()) {
+                LOG.log(Level.FINER, "> " + authRequest.method() + " " + authRequest.uri());
+                LOG.log(Level.FINER, encodedFormData);
+            }
             HttpResponse<String> authResponse = httpClient.send(authRequest, HttpResponse.BodyHandlers.ofString());
             int status = authResponse.statusCode();
-            if (status != 200) {
-                throw new RuntimeException("Unable to authenticate to keycloak :" + authResponse.body());
+            String responseBody = authResponse.body();
+            if (exportConfig.isDebug()) {
+                LOG.log(Level.FINER, "< " + status + " " + responseBody);
             }
-            JsonReader reader = Json.createReader(new StringReader(authResponse.body()));
+            if (status != 200) {
+                throw new RuntimeException("Unable to authenticate to keycloak :" + responseBody);
+            }
+            JsonReader reader = Json.createReader(new StringReader(responseBody));
             JsonObject tokenJsonObject = reader.readObject();
             accessToken = tokenJsonObject.getString("access_token");
         }
 
+        Thread.sleep(2000);
 
         InputStream realmData;
         {
@@ -57,10 +69,19 @@ public class KeycloakExportClient {
                     .GET()
                     .uri(exportConfig.getKeycloakApiUri().resolve("realms/" + realmName + "/importexport/realm"))
                     .header("accept", "application/json")
-                    .headers("authorization", "bearer " + accessToken)
+                    .header("authorization", "bearer " + accessToken)
                     .build();
+            if (exportConfig.isDebug()) {
+                LOG.log(Level.FINER, "> " + exportRequest.method() + " " + exportRequest.uri());
+                LOG.log(Level.FINER, "authorization: bearer " + accessToken);
+            }
+
             HttpResponse<InputStream> exportResponse = httpClient.send(exportRequest, HttpResponse.BodyHandlers.ofInputStream());
             int statusCode = exportResponse.statusCode();
+            if (exportConfig.isDebug()) {
+                LOG.log(Level.FINER, "< " + statusCode);
+            }
+
             if (statusCode != 200) {
                 InputStream exportBodyData = exportResponse.body();
                 byte[] exportBodyBytes = exportBodyData.readAllBytes();

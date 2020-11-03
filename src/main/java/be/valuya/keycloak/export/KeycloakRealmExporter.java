@@ -1,6 +1,5 @@
 package be.valuya.keycloak.export;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
@@ -12,8 +11,11 @@ public class KeycloakRealmExporter {
     private final static Logger LOG = Logger.getLogger(KeycloakRealmExporter.class.getName());
 
     public static void main(String[] args) {
-        tryReadLoggingConfig();
         KeycloakRealmExportConfig config = KeycloakRealmExportConfigFactory.createConfig(args);
+        tryReadLoggingConfig(config);
+        if (config.isDebug()) {
+            LOG.log(Level.FINER, "Config: " + config.toString());
+        }
 
         KeycloakExportClient exportClient = new KeycloakExportClient(config);
         KubernetesClient kubernetesClient = new KubernetesClient(config);
@@ -30,11 +32,13 @@ public class KeycloakRealmExporter {
         System.exit(hasFailure ? 1 : 0);
     }
 
-    private static void tryReadLoggingConfig() {
+    private static void tryReadLoggingConfig(KeycloakRealmExportConfig config) {
         try {
-            InputStream logPropsFile = KeycloakRealmExporter.class.getClassLoader().getResourceAsStream("logging.properties");
+            boolean debug = config.isDebug();
+            String loggingPropertiesFileName = debug ? "logging.debug.properties" : "logging.properties";
+            InputStream logPropsFile = KeycloakRealmExporter.class.getClassLoader().getResourceAsStream(loggingPropertiesFileName);
             LogManager.getLogManager().readConfiguration(logPropsFile);
-        } catch (Exception var14) {
+        } catch (Exception e) {
             LOG.log(Level.WARNING, "Unable to load logging config");
         }
     }
@@ -45,14 +49,14 @@ public class KeycloakRealmExporter {
         InputStream realmData;
         try {
             realmData = exportClient.exportRealm(realm);
-        } catch (InterruptedException | IOException e) {
+        } catch (Exception e) {
             LOG.log(Level.SEVERE, "Unable to load realm data", e);
             return false;
         }
 
         try {
             kubernetesClient.persistRealmData(realm, realmData);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.log(Level.SEVERE, "Unable to save realm data", e);
             return false;
         }
