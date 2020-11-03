@@ -7,8 +7,10 @@ public class KeycloakRealmExportConfig {
 
     private Set<String> realmNames;
     private URI keycloakApiUri;
+    private String keycloakHostname;
     private String adminUser;
     private String adminPassword;
+    private boolean exportUsers;
 
     private String secretNamespace;
     private String secretNamePattern;
@@ -63,6 +65,14 @@ public class KeycloakRealmExportConfig {
         this.secretNamePattern = secretNamePattern;
     }
 
+    public String getKeycloakHostname() {
+        return keycloakHostname;
+    }
+
+    public void setKeycloakHostname(String keycloakHostname) {
+        this.keycloakHostname = keycloakHostname;
+    }
+
     public boolean isDebug() {
         return debug;
     }
@@ -71,15 +81,25 @@ public class KeycloakRealmExportConfig {
         this.debug = debug;
     }
 
+    public boolean isExportUsers() {
+        return exportUsers;
+    }
+
+    public void setExportUsers(boolean exportUsers) {
+        this.exportUsers = exportUsers;
+    }
+
     @Override
     public String toString() {
         return "KeycloakRealmExportConfig{" +
                 "realmNames=" + realmNames +
                 ", keycloakApiUri=" + keycloakApiUri +
+                ", keycloakHostname=" + keycloakHostname +
                 ", adminUser='" + adminUser + '\'' +
                 ", adminPassword='" + adminPassword + '\'' +
                 ", secretNamespace='" + secretNamespace + '\'' +
                 ", secretNamePattern='" + secretNamePattern + '\'' +
+                ", exportUsers=" + exportUsers +
                 ", debug=" + debug +
                 '}';
     }

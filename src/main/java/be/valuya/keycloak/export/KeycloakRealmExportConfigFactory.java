@@ -27,13 +27,17 @@ public class KeycloakRealmExportConfigFactory {
     public static final String PROP_REALM = "realm";
     public static final String PROP_REALMS = "realms";
     public static final String PROP_URI = "uri";
+    public static final String PROP_HOST = "host";
+    public static final String PROP_EXPORT_USERS = "exportusers";
     public static final String PROP_ADMIN_USERNAME = "username";
     public static final String PROP_ADMIN_PASSWORD = "password";
     public static final String PROP_SECRET_NAMESPACE = "secretnamespace";
     public static final String PROP_SECRET_NAME_PATTERN = "secretpattern";
 
     private final static Set<String> allProperties = Set.of(
-            PROP_DEBUG, PROP_REALM, PROP_REALMS, PROP_URI, PROP_ADMIN_USERNAME, PROP_ADMIN_PASSWORD,
+            PROP_DEBUG, PROP_REALM, PROP_REALMS, PROP_URI, PROP_HOST,
+            PROP_ADMIN_USERNAME, PROP_ADMIN_PASSWORD,
+            PROP_EXPORT_USERS,
             PROP_SECRET_NAMESPACE, PROP_SECRET_NAME_PATTERN
     );
 
@@ -71,6 +75,10 @@ public class KeycloakRealmExportConfigFactory {
         }
         exportConfig.setKeycloakApiUri(apiUri);
 
+        String host = Optional.ofNullable(properties.get(PROP_HOST))
+                .orElseGet(apiUri::getHost);
+        exportConfig.setKeycloakHostname(host);
+
         String user = Optional.ofNullable(properties.get(PROP_ADMIN_USERNAME))
                 .filter(s -> !s.isBlank())
                 .orElseThrow(() -> new RuntimeException("No admin username"));
@@ -93,6 +101,11 @@ public class KeycloakRealmExportConfigFactory {
                 .map(Boolean::parseBoolean)
                 .orElse(false);
         exportConfig.setDebug(debug);
+
+        boolean exportUsers = Optional.ofNullable(properties.get(PROP_EXPORT_USERS))
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        exportConfig.setExportUsers(exportUsers);
 
         return exportConfig;
     }
