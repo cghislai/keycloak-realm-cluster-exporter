@@ -2,12 +2,14 @@ pipeline {
     agent any
     parameters {
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests')
+        booleanParam(name: 'SKIP_PUBLISH', defaultValue: false, description: 'Skip publishing archive')
         string(name: 'ALT_DEPLOYMENT_REPOSITORY', defaultValue: '', description: 'Alternative deployment repo')
         string(name: 'MVN_ARGS', defaultValue: '', description: 'Additional maven args')
         string(name: 'GPG_KEY_CREDENTIAL_ID', defaultValue: 'jenkins-jenkins-charlyghislain-maven-deploy-gpg-key',
          description: 'Credential containing the private gpg key (pem)')
         string(name: 'GPG_KEY_FINGERPRINT', defaultValue: '508608F6CF097B4746CB291B5B72FDC1FF81F9ED',
          description: 'The fingerprint of this key to add to trust root')
+        string(name: 'DOCKER_REPO', defaultValue: 'docker.valuya.com', description: 'Docker repo')
     }
     options {
         disableConcurrentBuilds()
@@ -28,6 +30,12 @@ pipeline {
             }
         }
         stage ('Publish') {
+            when { anyOf {
+                expression { return params.SKIP_PUBLISH != true }
+            } }
+            agent {
+                label 'docker'
+            }
             steps {
                 script {
                     env.MVN_ARGS=params.MVN_ARGS
@@ -46,6 +54,16 @@ pipeline {
                 }
                 withMaven(maven: 'maven', mavenSettingsConfig: 'ossrh-cghislai-settings-xml', jdk: 'jdk11') {
                     sh "mvn deploy $MVN_ARGS"
+                    script {
+                        VERSION = sh(script: 'JENKINS_MAVEN_AGENT_DISABLED=true mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tail -n1', returnStdout: true).trim()
+                    }
+                }
+                container('docker') {
+                    script {
+                        def image = docker.build("${params.DOCKER_REPO}/keycloak-realm-cluster-exporter:${VERSION}")
+                        image.push()
+                        image.push("${BRANCH_NAME}-latest")
+                    }
                 }
             }
         }
