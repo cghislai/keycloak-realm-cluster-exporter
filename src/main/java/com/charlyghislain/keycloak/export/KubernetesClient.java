@@ -52,7 +52,8 @@ public class KubernetesClient {
         CoreV1Api api = new CoreV1Api();
 
         String secretNamespace = exportConfig.getSecretNamespace();
-        String secretName = createNameSpaceSecretName(realm);
+        String secretName = creatSecretName(realm);
+        String secretKey = creatSecretKey(realm);
         V1Secret existingSecret;
         try {
             existingSecret = api.readNamespacedSecret(secretName, secretNamespace, null);
@@ -64,9 +65,11 @@ public class KubernetesClient {
         V1ObjectMeta metadata = new V1ObjectMeta();
         metadata.setName(secretName);
         metadata.setNamespace(secretNamespace);
+        metadata.setLabels(exportConfig.getSecretLabels());
+        metadata.setAnnotations(exportConfig.getSecretAnnotations());
+
         V1Secret newSecret = new V1Secret();
         newSecret.setApiVersion("v1");
-        String secretKey = realm + ".json";
         newSecret.setData(Map.of(secretKey, dataBytes));
         newSecret.setKind("Secret");
         newSecret.setType("Opaque");
@@ -90,10 +93,16 @@ public class KubernetesClient {
         }
     }
 
-    private String createNameSpaceSecretName(String realm) {
+    private String creatSecretName(String realm) {
         String secretNamePattern = exportConfig.getSecretNamePattern();
         String formattedDate = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         String secretName = MessageFormat.format(secretNamePattern, realm, formattedDate);
+        return secretName;
+    }
+
+    private String creatSecretKey(String realm) {
+        String keyPattern = exportConfig.getSecretKeyPattern();
+        String secretName = MessageFormat.format(keyPattern, realm);
         return secretName;
     }
 
