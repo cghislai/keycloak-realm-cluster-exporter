@@ -123,6 +123,9 @@
                             <goals>
                                 <goal>sign</goal>
                             </goals>
+                            <configuration>
+                                <interactive>false</interactive>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
