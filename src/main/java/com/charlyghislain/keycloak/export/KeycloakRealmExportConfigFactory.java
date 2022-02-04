@@ -1,4 +1,4 @@
-package be.valuya.keycloak.export;
+package com.charlyghislain.keycloak.export;
 
 import java.io.IOException;
 import java.net.URI;

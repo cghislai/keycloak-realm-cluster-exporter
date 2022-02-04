@@ -1,4 +1,4 @@
-FROM openjdk:15.0.1-slim
+FROM openjdk:17-alpine
 
 ADD target/keycloak-realm-cluster-exporter-jar-with-dependencies.jar /exporter.jar
 

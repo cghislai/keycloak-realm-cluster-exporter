@@ -1,65 +1,46 @@
-#!groovy
-
 pipeline {
     agent any
     parameters {
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip tests')
+        booleanParam(name: 'NPM_DEPLOY', defaultValue: false, description: 'NPM deployment')
         string(name: 'ALT_DEPLOYMENT_REPOSITORY', defaultValue: '', description: 'Alternative deployment repo')
-        string(name: 'MAVEN_INSTALLATION', defaultValue: 'maven', description: 'Maven installation to use')
-        string(name: 'MAVEN_SETTINGS', defaultValue: 'nexus-mvn-settings', description: 'Maven settings to use')
-        string(name: 'DOCKER_REPO', defaultValue: 'eu.gcr.io/lifeislife-cloud', description: 'Alternative deployment repo')
+        string(name: 'MVN_ARGS', defaultValue: '', description: 'Additional maven args')
     }
     options {
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
     stages {
-        stage('Build & publish') {
+        stage ('Build') {
             steps {
                 script {
-                    env.MVN_ARGS = ""
+                    env.MVN_ARGS=params.MVN_ARGS
                     if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
-                        env.MVN_ARGS = "-DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
+                        env.MVN_ARGS="${env.MVN_ARGS} -DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
                     }
-                    env.MVN_PHASE = "install"
                 }
-                withMaven(maven: "${params.MAVEN_INSTALLATION}", mavenSettingsConfig: "${params.MAVEN_SETTINGS}") {
-                    sh "mvn ${env.MVN_ARGS}  clean ${env.MVN_PHASE}"
-                    script {
-                        VERSION = sh(script: 'JENKINS_MAVEN_AGENT_DISABLED=true mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tail -n1', returnStdout: true).trim()
-                    }
-                    stash(name: 'target', includes: 'target/*.jar')
+                withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings') {
+                    sh "mvn -DskipTests=${params.SKIP_TESTS} clean compile install"
                 }
             }
         }
-        stage('Build & publish docker image') {
-            when {
-                anyOf {
-                    environment name: 'BRANCH_NAME', value: 'master'
-                    environment name: 'BRANCH_NAME', value: 'dev'
-                }
-            }
-            agent {
-                label 'docker'
-            }
+        stage ('Publish') {
             steps {
-                container('docker') {
-                    unstash(name: 'target')
-                    script {
-                        def image = docker.build("${params.DOCKER_REPO}/keycloak-realm-cluster-exporter:${VERSION}")
-                        image.push()
-                        image.push("${BRANCH_NAME}-latest")
+                script {
+                    env.MVN_ARGS=params.MVN_ARGS
+                    env.NPM_DEPLOY=params.NPM_DEPLOY
+                    if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
+                        env.MVN_ARGS="${env.MVN_ARGS} -DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
+                    }
+                    if (env.BRANCH_NAME == 'master') {
+                        env.MVN_ARGS="${env.MVN_ARGS} -Possrh-deploy"
+                        env.NPM_DEPLOY="true"
                     }
                 }
+                withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings', mavenOpts: '-DskipTests=true') {
+                    sh "mvn deploy $MVN_ARGS"
+                }
             }
-        }
-    }
-    post {
-        failure {
-            mail(
-                    to: 'charlyghislain@gmail.com', cc: 'yannick@valuya.be',
-                    subject: "Build failed: keycloak realm exporter $BRANCH_NAME ${BUILD_NUMBER}",
-                    body: "See job at ${BUILD_URL}"
-            )
         }
     }
 }

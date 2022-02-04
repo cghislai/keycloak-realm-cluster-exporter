@@ -1,4 +1,4 @@
-package be.valuya.keycloak.export;
+package com.charlyghislain.keycloak.export;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
@@ -55,7 +55,7 @@ public class KubernetesClient {
         String secretName = createNameSpaceSecretName(realm);
         V1Secret existingSecret;
         try {
-            existingSecret = api.readNamespacedSecret(secretName, secretNamespace, null, null, null);
+            existingSecret = api.readNamespacedSecret(secretName, secretNamespace, null);
         } catch (ApiException e) {
             LOG.log(Level.FINE, "HTTP error to get secret named " + secretName + ": " + e.getCode());
             existingSecret = null;

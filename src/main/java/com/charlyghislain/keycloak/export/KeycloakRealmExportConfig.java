@@ -1,4 +1,4 @@
-package be.valuya.keycloak.export;
+package com.charlyghislain.keycloak.export;
 
 import java.net.URI;
 import java.util.Set;
