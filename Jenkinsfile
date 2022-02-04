@@ -5,6 +5,10 @@ pipeline {
         booleanParam(name: 'NPM_DEPLOY', defaultValue: false, description: 'NPM deployment')
         string(name: 'ALT_DEPLOYMENT_REPOSITORY', defaultValue: '', description: 'Alternative deployment repo')
         string(name: 'MVN_ARGS', defaultValue: '', description: 'Additional maven args')
+        string(name: 'GPG_KEY_CREDENTIAL_ID', defaultValue: 'jenkins-jenkins-valuya-maven-deploy-gpg-key',
+         description: 'Credential containing the private gpg key (pem)')
+        string(name: 'GPG_KEY_FINGERPRINT', defaultValue: '98547E57F1690E2901E74CAB04EBAAA5BAB4A4DF',
+         description: 'The fingerprint of this key to add to trust root')
     }
     options {
         disableConcurrentBuilds()
@@ -29,6 +33,8 @@ pipeline {
                 script {
                     env.MVN_ARGS=params.MVN_ARGS
                     env.NPM_DEPLOY=params.NPM_DEPLOY
+                    env.MVN_ARGS="${env.MVN_ARGS} -DskipTests=true"
+
                     if (params.ALT_DEPLOYMENT_REPOSITORY != '') {
                         env.MVN_ARGS="${env.MVN_ARGS} -DaltDeploymentRepository=${params.ALT_DEPLOYMENT_REPOSITORY}"
                     }
@@ -37,7 +43,11 @@ pipeline {
                         env.NPM_DEPLOY="true"
                     }
                 }
-                withMaven(maven: 'maven', mavenSettingsConfig: 'nexus-mvn-settings', mavenOpts: '-DskipTests=true') {
+                withCredentials([file(credentialsId: "${params.GPG_KEY_CREDENTIAL_ID}", variable: 'GPGKEY')]) {
+                    sh 'gpg --allow-secret-key-import --import $GPGKEY'
+                    sh "echo \"${params.GPG_KEY_FINGERPRINT}:6:\" | gpg --import-ownertrust"
+                }
+                withMaven(maven: 'maven', mavenSettingsConfig: 'ossrh-settings-xml', jdk: 'jdk11') {
                     sh "mvn deploy $MVN_ARGS"
                 }
             }
