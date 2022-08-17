@@ -78,9 +78,9 @@ public class KubernetesClient {
         V1Secret updatedSecret;
         try {
             if (existingSecret == null) {
-                updatedSecret = api.createNamespacedSecret(secretNamespace, newSecret, null, null, null);
+                updatedSecret = api.createNamespacedSecret(secretNamespace, newSecret, null, null, null, null);
             } else {
-                updatedSecret = api.replaceNamespacedSecret(secretName, secretNamespace, newSecret, null, null, null);
+                updatedSecret = api.replaceNamespacedSecret(secretName, secretNamespace, newSecret, null, null, null, null);
             }
         } catch (ApiException e) {
             throw new RuntimeException("Unable to create/replace secret " + secretName, e);
