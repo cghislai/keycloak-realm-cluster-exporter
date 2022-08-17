@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,6 +16,8 @@ public class KeycloakRealmExportConfig {
 
     private Set<String> realmNames;
     private URI keycloakApiUri;
+    private Path keycloakTrustStorePath;
+    private String keycloakTrustStorePassword;
     private String keycloakHostname;
     private String adminUser;
     private String adminPassword;

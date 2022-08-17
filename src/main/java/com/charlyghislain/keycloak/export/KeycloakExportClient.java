@@ -4,6 +4,8 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +17,13 @@ import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,17 +33,18 @@ import java.util.logging.Logger;
 public class KeycloakExportClient {
     private final static Logger LOG = Logger.getLogger(KeycloakExportClient.class.getName());
 
-    private KeycloakRealmExportConfig exportConfig;
+    private final KeycloakRealmExportConfig exportConfig;
+    private final HttpClient httpClient;
     private String accessToken;
 
     public KeycloakExportClient(KeycloakRealmExportConfig exportConfig) {
         this.exportConfig = exportConfig;
         // Need to override host header so that keycoak matches its issuer
         System.setProperty("jdk.httpclient.allowRestrictedHeaders", "host");
+        httpClient = createClient();
     }
 
     public InputStream exportRealm(String realmName) throws IOException, InterruptedException {
-        HttpClient httpClient = HttpClient.newHttpClient();
 
         String accessToken = getAccessToken();
 
@@ -71,7 +81,6 @@ public class KeycloakExportClient {
         if (this.accessToken != null) {
             return this.accessToken;
         }
-        HttpClient httpClient = HttpClient.newHttpClient();
 
         Map<String, String> formData = new HashMap<>();
         formData.put("client_id", "admin-cli");
@@ -103,6 +112,37 @@ public class KeycloakExportClient {
         return this.accessToken;
     }
 
+    private HttpClient createClient() {
+        Path keycloakTrustStorePath = exportConfig.getKeycloakTrustStorePath();
+        if (keycloakTrustStorePath == null) {
+            return HttpClient.newHttpClient();
+        }
+
+        String trustStorePassword = Optional.ofNullable(exportConfig.getKeycloakTrustStorePassword())
+                .orElseThrow(() -> new RuntimeException("No truststore password provided"));
+
+        String keyStoreType = keycloakTrustStorePath.getFileName().toString().endsWith("p12") ? "pkcs12" : "jks";
+        try (InputStream trustStoreStream = Files.newInputStream(keycloakTrustStorePath)) {
+            KeyStore trustStore = KeyStore.getInstance(keyStoreType);
+            trustStore.load(trustStoreStream, trustStorePassword.toCharArray());
+            String trustManagerFactoryAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(trustManagerFactoryAlgorithm);
+            trustManagerFactory.init(trustStore);
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(
+                    null,
+                    trustManagerFactory.getTrustManagers(),
+                    null
+            );
+
+            return HttpClient.newBuilder()
+                    .sslContext(sslContext)
+                    .build();
+        } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException | KeyManagementException e) {
+            throw new RuntimeException("Unable to read truststore at " + keycloakTrustStorePath + ": " + e.getMessage(), e);
+        }
+    }
 
     private String encodeBodyFormData(Map<String, String> valueMap) {
         return valueMap.entrySet()

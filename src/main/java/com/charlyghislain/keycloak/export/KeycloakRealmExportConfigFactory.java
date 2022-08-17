@@ -61,6 +61,22 @@ public class KeycloakRealmExportConfigFactory {
         }
         exportConfig.setKeycloakApiUri(apiUri);
 
+        Optional<Path> keycloakTruststorePathOptional = Optional.ofNullable(properties.get(ConfigurationProperty.KEYCLOAK_TRUSTSTORE_PATH.getPropertyName()))
+                .filter(s -> !s.isBlank())
+                .map(Paths::get);
+        if (keycloakTruststorePathOptional.isPresent()) {
+            Path trustStorePath = keycloakTruststorePathOptional.get();
+            if (Files.exists(trustStorePath) && Files.isReadable(trustStorePath)) {
+                exportConfig.setKeycloakTrustStorePath(trustStorePath);
+            } else {
+                throw new RuntimeException("Truststore at " + trustStorePath + "not readable");
+            }
+        }
+
+        Optional.ofNullable(properties.get(ConfigurationProperty.KEYCLOAK_TRUSTSTORE_PASSWORD.getPropertyName()))
+                .filter(s -> !s.isBlank())
+                .ifPresent(exportConfig::setKeycloakTrustStorePassword);
+
         String host = Optional.ofNullable(properties.get(ConfigurationProperty.KEYCLOAK_HOST_HEADER.getPropertyName()))
                 .orElseGet(apiUri::getHost);
         exportConfig.setKeycloakHostname(host);

@@ -13,6 +13,8 @@ public enum ConfigurationProperty {
     REALM_NAME("realmName", "The name of a single realm"),
     REALM_NAMES("realmNames", "A comma-separated list of realm names"),
     KEYCLOAK_API_URI("keycloakApiUri", "The keycloak uri, eg keycloak.namespace.cluster.local:8080/auth"),
+    KEYCLOAK_TRUSTSTORE_PATH("keycloakTruststorePath", "The path to a truststore when reaching keycloak over tls"),
+    KEYCLOAK_TRUSTSTORE_PASSWORD("keycloakTruststorePassword", "The password to the keycloak truststore"),
     KEYCLOAK_HOST_HEADER("keycloakHostHeader", "The keycloak host header. This must match the token issuer, and is required if the api uri is not a public uri"),
 
     EXPORT_USERS("exportUsers", "Whether to export users as well. This might not fit within a kubernetes secret then."),
