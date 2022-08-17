@@ -60,7 +60,7 @@ pipeline {
                 }
                 container('docker') {
                     script {
-                        def image = docker.build("${params.DOCKER_REPO}/keycloak-realm-cluster-exporter:${VERSION}")
+                        def image = docker.build("${params.DOCKER_REPO}/keycloak-realm-cluster-exporter:${VERSION}", "--network=host .")
                         image.push()
                         image.push("${BRANCH_NAME}-latest")
                     }
